@@ -1,5 +1,4 @@
 #include <string.h>
-#include <iostream>
 #include <math.h>
 #include "FireLog.h"
 #include "FireSight.hpp"
