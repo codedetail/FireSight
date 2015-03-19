@@ -1610,12 +1610,12 @@ void Pipeline::validateImage(Mat &image) {
 
 json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap) {
     Model model(argMap);
-    json_t *pModelJson = model.getJson(true);
+	json_t *pModelJson = model.getJson(true);
 
     model.image = workingImage;
     model.imageMap["input"] = model.image.clone();
     bool ok = processModel(model);
-    workingImage = model.image;
+	workingImage = model.image;
 
     return pModelJson;
 }
@@ -1680,6 +1680,7 @@ bool Pipeline::processModel(Model &model) {
             ok = false;
             break;
         }
+		json_decref(pStageModel);
     } // json_array_foreach
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
