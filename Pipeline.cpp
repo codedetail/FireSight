@@ -1645,7 +1645,7 @@ bool Pipeline::processModel(Model &model) {
         string comment = jo_string(pStage, "comment", "", model.argMap);
         json_t *pStageModel = json_object();
         json_t *jmodel = model.getJson(false);
-        json_object_set(jmodel, pName.c_str(), pStageModel);
+        json_object_set_new(jmodel, pName.c_str(), pStageModel);
         if (logLevel >= FIRELOG_DEBUG) {
             string stageDump = jo_object_dump(pStage, model.argMap);
             snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
@@ -1680,12 +1680,13 @@ bool Pipeline::processModel(Model &model) {
             ok = false;
             break;
         }
-		json_decref(pStageModel);
+		//json_decref(pStageModel);
     } // json_array_foreach
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
     LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",
               (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
+
 
     return ok;
 }
