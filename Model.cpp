@@ -12,13 +12,15 @@ using namespace std;
 using namespace firesight;
 
 Model::Model(ArgMap &argMap) {
-  pJson = json_object();
-  this->argMap = argMap;
+    pJson = json_object();
+    this->argMap = argMap;
 }
 
 Model::~Model() {
-  json_decref(pJson);
-  for (std::map<string,StageDataPtr>::iterator it=stageDataMap.begin(); it!=stageDataMap.end(); ++it){
-    delete it->second;
-  }
+    json_decref(pJson);
+    for (std::map<string, StageDataPtr>::iterator it = this->stageDataMap.begin(); it != this->stageDataMap.end(); ++it) {
+        StageDataPtr stageDataPtr = it->second;
+        delete stageDataPtr;
+    }
+    stageDataMap.clear();
 }

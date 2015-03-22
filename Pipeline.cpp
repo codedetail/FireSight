@@ -28,7 +28,7 @@ StageData::~StageData() {
 
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     if (errMsg && *errMsg) {
-        char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
+        char *pStageJson = json_dumps(pStage, JSON_COMPACT | JSON_PRESERVE_ORDER);
         LOGERROR2(fmt, pStageJson, errMsg);
         free(pStageJson);
         json_object_set(pStageModel, "error", json_string(errMsg));
@@ -85,18 +85,18 @@ bool Pipeline::apply_meanStdDev(json_t *pStage, json_t *pStageModel, Model &mode
     validateImage(model.image);
     const char *errMsg = NULL;
 
-	Scalar mean;
-	Scalar stdDev;
-	meanStdDev(model.image, mean, stdDev);
+    Scalar mean;
+    Scalar stdDev;
+    meanStdDev(model.image, mean, stdDev);
 
-	json_t * jmean = json_array();
-    json_object_set(pStageModel, "mean", jmean);
-	json_t * jstddev = json_array();
-    json_object_set(pStageModel, "stdDev", jstddev);
-	for (int i = 0; i < 4; i++) {
-		json_array_append(jmean, json_real(mean[i]));
-		json_array_append(jstddev, json_real(stdDev[i]));
-	}
+    json_t * jmean = json_array();
+    json_object_set_new(pStageModel, "mean", jmean);
+    json_t * jstddev = json_array();
+    json_object_set_new(pStageModel, "stdDev", jstddev);
+    for (int i = 0; i < 4; i++) {
+        json_array_append_new(jmean, json_real(mean[i]));
+        json_array_append_new(jstddev, json_real(stdDev[i]));
+    }
 
     return stageOK("apply_meanStdDev(%s) %s", errMsg, pStage, pStageModel);
 }
@@ -111,11 +111,11 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     int rows = model.image.rows;
     int cols = model.image.cols;
     json_t *pRects = json_array();
-    json_object_set(pStageModel, "rects", pRects);
+    json_object_set_new(pStageModel, "rects", pRects);
 
     const int channels = model.image.channels();
     LOGTRACE1("apply_minAreaRect() channels:%d", channels);
-    switch(channels) {
+    switch (channels) {
     case 1: {
         for (int iRow = 0; iRow < rows; iRow++) {
             for (int iCol = 0; iCol < cols; iCol++) {
@@ -142,16 +142,16 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     }
 
     LOGTRACE1("apply_minAreaRect() points found: %d", (int) points.size());
-    json_object_set(pStageModel, "points", json_integer(points.size()));
+    json_object_set_new(pStageModel, "points", json_integer(points.size()));
     if (points.size() > 0) {
         RotatedRect rect = minAreaRect(points);
         json_t *pRect = json_object();
-        json_object_set(pRect, "x", json_real(rect.center.x));
-        json_object_set(pRect, "y", json_real(rect.center.y));
-        json_object_set(pRect, "width", json_real(rect.size.width));
-        json_object_set(pRect, "height", json_real(rect.size.height));
-        json_object_set(pRect, "angle", json_real(rect.angle));
-        json_array_append(pRects, pRect);
+        json_object_set_new(pRect, "x", json_real(rect.center.x));
+        json_object_set_new(pRect, "y", json_real(rect.center.y));
+        json_object_set_new(pRect, "width", json_real(rect.size.width));
+        json_object_set_new(pRect, "height", json_real(rect.size.height));
+        json_object_set_new(pRect, "angle", json_real(rect.angle));
+        json_array_append_new(pRects, pRect);
     }
 
     return stageOK("apply_minAreaRect(%s) %s", errMsg, pStage, pStageModel);
@@ -162,15 +162,15 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
     const char *errMsg = NULL;
     float scale = jo_float(pStage, "scale", 1, model.argMap);
     float angle = jo_float(pStage, "angle", 0, model.argMap);
-    int dx = jo_int(pStage, "dx", (int)((scale-1)*model.image.cols/2.0+.5), model.argMap);
-    int dy = jo_int(pStage, "dy", (int)((scale-1)*model.image.rows/2.0+.5), model.argMap);
-    Point2f reflect = jo_Point2f(pStage, "reflect", Point(0,0), model.argMap);
+    int dx = jo_int(pStage, "dx", (int)((scale - 1) * model.image.cols / 2.0 + .5), model.argMap);
+    int dy = jo_int(pStage, "dy", (int)((scale - 1) * model.image.rows / 2.0 + .5), model.argMap);
+    Point2f reflect = jo_Point2f(pStage, "reflect", Point(0, 0), model.argMap);
     string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
     int borderMode;
 
-	if (reflect.x && reflect.y && reflect.x != reflect.y) {
-		errMsg = "warpAffine only handles reflections around x- or y-axes";
-	}
+    if (reflect.x && reflect.y && reflect.x != reflect.y) {
+        errMsg = "warpAffine only handles reflections around x- or y-axes";
+    }
 
     if (!errMsg) {
         if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
@@ -195,15 +195,15 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
     }
     int width = jo_int(pStage, "width", model.image.cols, model.argMap);
     int height = jo_int(pStage, "height", model.image.rows, model.argMap);
-    int cx = jo_int(pStage, "cx", (int)(0.5+model.image.cols/2.0), model.argMap);
-    int cy = jo_int(pStage, "cy", (int)(0.5+model.image.rows/2.0), model.argMap);
+    int cx = jo_int(pStage, "cx", (int)(0.5 + model.image.cols / 2.0), model.argMap);
+    int cy = jo_int(pStage, "cy", (int)(0.5 + model.image.rows / 2.0), model.argMap);
     Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0), model.argMap);
 
     if (!errMsg) {
         Mat result;
-		int flags=cv::INTER_LINEAR || WARP_INVERSE_MAP;
-        matWarpAffine(model.image, result, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), 
-			borderMode, borderValue, reflect, flags);
+        int flags = cv::INTER_LINEAR || WARP_INVERSE_MAP;
+        matWarpAffine(model.image, result, Point(cx, cy), angle, scale, Point(dx, dy), Size(width, height),
+                      borderMode, borderValue, reflect, flags);
         model.image = result;
     }
 
@@ -212,7 +212,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 
 bool Pipeline::apply_warpPerspective(const char *pName, json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
-	string errMsg;
+    string errMsg;
 
     string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
     int borderMode;
@@ -231,24 +231,24 @@ bool Pipeline::apply_warpPerspective(const char *pName, json_t *pStage, json_t *
     } else {
         pCalibrate = pStage;
     }
-	pm = jo_vectord(pCalibrate, "perspective", vector<double>(), model.argMap);
-	if (pm.size() == 0) {
-		double default_vec_d[] = {1,0,0,0,1,0,0,0,1};
-		vector<double> default_vecd(default_vec_d, default_vec_d + sizeof(default_vec_d) / sizeof(double) );
-		pm = jo_vectord(pCalibrate, "matrix", default_vecd, model.argMap);
-	}
-	Mat matrix = Mat::zeros(3, 3, CV_64F);
-	if (pm.size() == 9) {
-		for (int i=0; i<pm.size(); i++) {
-			matrix.at<double>(i/3, i%3) = pm[i];
-		}
-	} else {
-		char buf[255];
-		snprintf(buf, sizeof(buf), "apply_warpPerspective() invalid perspective matrix. Elements expected:9 actual:%d",
-			(int) pm.size());
-		LOGERROR1("%s", buf);
-		errMsg = buf;
-	}
+    pm = jo_vectord(pCalibrate, "perspective", vector<double>(), model.argMap);
+    if (pm.size() == 0) {
+        double default_vec_d[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+        vector<double> default_vecd(default_vec_d, default_vec_d + sizeof(default_vec_d) / sizeof(double) );
+        pm = jo_vectord(pCalibrate, "matrix", default_vecd, model.argMap);
+    }
+    Mat matrix = Mat::zeros(3, 3, CV_64F);
+    if (pm.size() == 9) {
+        for (int i = 0; i < pm.size(); i++) {
+            matrix.at<double>(i / 3, i % 3) = pm[i];
+        }
+    } else {
+        char buf[255];
+        snprintf(buf, sizeof(buf), "apply_warpPerspective() invalid perspective matrix. Elements expected:9 actual:%d",
+                 (int) pm.size());
+        LOGERROR1("%s", buf);
+        errMsg = buf;
+    }
 
     if (errMsg.empty()) {
         if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
@@ -282,13 +282,13 @@ bool Pipeline::apply_warpPerspective(const char *pName, json_t *pStage, json_t *
 bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string text = jo_string(pStage, "text", "FireSight", model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
+    Scalar color = jo_Scalar(pStage, "color", Scalar(0, 255, 0), model.argMap);
     string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN", model.argMap);
     int thickness = jo_int(pStage, "thickness", 1, model.argMap);
     int fontFace = FONT_HERSHEY_PLAIN;
     bool italic = jo_bool(pStage, "italic", false, model.argMap);
     double fontScale = jo_double(pStage, "fontScale", 1, model.argMap);
-    Point org = jo_Point(pStage, "org", Point(5,-6), model.argMap);
+    Point org = jo_Point(pStage, "org", Point(5, -6), model.argMap);
     if (org.y < 0) {
         org.y = model.image.rows + org.y;
     }
@@ -389,7 +389,7 @@ bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) 
         errMsg = "Expected path for imwrite";
     } else {
         bool result = imwrite(path.c_str(), model.image);
-        json_object_set(pStageModel, "result", json_boolean(result));
+        json_object_set_new(pStageModel, "result", json_boolean(result));
     }
 
     return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
@@ -402,223 +402,223 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model)
     const char *errMsg = NULL;
     int code = CV_BGR2GRAY;
 
-    if (codeStr.compare("CV_BGR2BGRA")==0) {
+    if (codeStr.compare("CV_BGR2BGRA") == 0) {
         code = CV_BGR2BGRA;
-    } else if (codeStr.compare("CV_RGB2RGBA")==0) {
+    } else if (codeStr.compare("CV_RGB2RGBA") == 0) {
         code = CV_RGB2RGBA;
-    } else if (codeStr.compare("CV_BGRA2BGR")==0) {
+    } else if (codeStr.compare("CV_BGRA2BGR") == 0) {
         code = CV_BGRA2BGR;
-    } else if (codeStr.compare("CV_RGBA2RGB")==0) {
+    } else if (codeStr.compare("CV_RGBA2RGB") == 0) {
         code = CV_RGBA2RGB;
-    } else if (codeStr.compare("CV_BGR2RGBA")==0) {
+    } else if (codeStr.compare("CV_BGR2RGBA") == 0) {
         code = CV_BGR2RGBA;
-    } else if (codeStr.compare("CV_RGB2BGRA")==0) {
+    } else if (codeStr.compare("CV_RGB2BGRA") == 0) {
         code = CV_RGB2BGRA;
-    } else if (codeStr.compare("CV_RGBA2BGR")==0) {
+    } else if (codeStr.compare("CV_RGBA2BGR") == 0) {
         code = CV_RGBA2BGR;
-    } else if (codeStr.compare("CV_BGRA2RGB")==0) {
+    } else if (codeStr.compare("CV_BGRA2RGB") == 0) {
         code = CV_BGRA2RGB;
-    } else if (codeStr.compare("CV_BGR2RGB")==0) {
+    } else if (codeStr.compare("CV_BGR2RGB") == 0) {
         code = CV_BGR2RGB;
-    } else if (codeStr.compare("CV_RGB2BGR")==0) {
+    } else if (codeStr.compare("CV_RGB2BGR") == 0) {
         code = CV_RGB2BGR;
-    } else if (codeStr.compare("CV_BGRA2RGBA")==0) {
+    } else if (codeStr.compare("CV_BGRA2RGBA") == 0) {
         code = CV_BGRA2RGBA;
-    } else if (codeStr.compare("CV_RGBA2BGRA")==0) {
+    } else if (codeStr.compare("CV_RGBA2BGRA") == 0) {
         code = CV_RGBA2BGRA;
-    } else if (codeStr.compare("CV_BGR2GRAY")==0) {
+    } else if (codeStr.compare("CV_BGR2GRAY") == 0) {
         code = CV_BGR2GRAY;
-    } else if (codeStr.compare("CV_RGB2GRAY")==0) {
+    } else if (codeStr.compare("CV_RGB2GRAY") == 0) {
         code = CV_RGB2GRAY;
-    } else if (codeStr.compare("CV_GRAY2BGR")==0) {
+    } else if (codeStr.compare("CV_GRAY2BGR") == 0) {
         code = CV_GRAY2BGR;
-    } else if (codeStr.compare("CV_GRAY2RGB")==0) {
+    } else if (codeStr.compare("CV_GRAY2RGB") == 0) {
         code = CV_GRAY2RGB;
-    } else if (codeStr.compare("CV_GRAY2BGRA")==0) {
+    } else if (codeStr.compare("CV_GRAY2BGRA") == 0) {
         code = CV_GRAY2BGRA;
-    } else if (codeStr.compare("CV_GRAY2RGBA")==0) {
+    } else if (codeStr.compare("CV_GRAY2RGBA") == 0) {
         code = CV_GRAY2RGBA;
-    } else if (codeStr.compare("CV_BGRA2GRAY")==0) {
+    } else if (codeStr.compare("CV_BGRA2GRAY") == 0) {
         code = CV_BGRA2GRAY;
-    } else if (codeStr.compare("CV_RGBA2GRAY")==0) {
+    } else if (codeStr.compare("CV_RGBA2GRAY") == 0) {
         code = CV_RGBA2GRAY;
-    } else if (codeStr.compare("CV_BGR2BGR565")==0) {
+    } else if (codeStr.compare("CV_BGR2BGR565") == 0) {
         code = CV_BGR2BGR565;
-    } else if (codeStr.compare("CV_RGB2BGR565")==0) {
+    } else if (codeStr.compare("CV_RGB2BGR565") == 0) {
         code = CV_RGB2BGR565;
-    } else if (codeStr.compare("CV_BGR5652BGR")==0) {
+    } else if (codeStr.compare("CV_BGR5652BGR") == 0) {
         code = CV_BGR5652BGR;
-    } else if (codeStr.compare("CV_BGR5652RGB")==0) {
+    } else if (codeStr.compare("CV_BGR5652RGB") == 0) {
         code = CV_BGR5652RGB;
-    } else if (codeStr.compare("CV_BGRA2BGR565")==0) {
+    } else if (codeStr.compare("CV_BGRA2BGR565") == 0) {
         code = CV_BGRA2BGR565;
-    } else if (codeStr.compare("CV_RGBA2BGR565")==0) {
+    } else if (codeStr.compare("CV_RGBA2BGR565") == 0) {
         code = CV_RGBA2BGR565;
-    } else if (codeStr.compare("CV_BGR5652BGRA")==0) {
+    } else if (codeStr.compare("CV_BGR5652BGRA") == 0) {
         code = CV_BGR5652BGRA;
-    } else if (codeStr.compare("CV_BGR5652RGBA")==0) {
+    } else if (codeStr.compare("CV_BGR5652RGBA") == 0) {
         code = CV_BGR5652RGBA;
-    } else if (codeStr.compare("CV_GRAY2BGR565")==0) {
+    } else if (codeStr.compare("CV_GRAY2BGR565") == 0) {
         code = CV_GRAY2BGR565;
-    } else if (codeStr.compare("CV_BGR5652GRAY")==0) {
+    } else if (codeStr.compare("CV_BGR5652GRAY") == 0) {
         code = CV_BGR5652GRAY;
-    } else if (codeStr.compare("CV_BGR2BGR555")==0) {
+    } else if (codeStr.compare("CV_BGR2BGR555") == 0) {
         code = CV_BGR2BGR555;
-    } else if (codeStr.compare("CV_RGB2BGR555")==0) {
+    } else if (codeStr.compare("CV_RGB2BGR555") == 0) {
         code = CV_RGB2BGR555;
-    } else if (codeStr.compare("CV_BGR5552BGR")==0) {
+    } else if (codeStr.compare("CV_BGR5552BGR") == 0) {
         code = CV_BGR5552BGR;
-    } else if (codeStr.compare("CV_BGR5552RGB")==0) {
+    } else if (codeStr.compare("CV_BGR5552RGB") == 0) {
         code = CV_BGR5552RGB;
-    } else if (codeStr.compare("CV_BGRA2BGR555")==0) {
+    } else if (codeStr.compare("CV_BGRA2BGR555") == 0) {
         code = CV_BGRA2BGR555;
-    } else if (codeStr.compare("CV_RGBA2BGR555")==0) {
+    } else if (codeStr.compare("CV_RGBA2BGR555") == 0) {
         code = CV_RGBA2BGR555;
-    } else if (codeStr.compare("CV_BGR5552BGRA")==0) {
+    } else if (codeStr.compare("CV_BGR5552BGRA") == 0) {
         code = CV_BGR5552BGRA;
-    } else if (codeStr.compare("CV_BGR5552RGBA")==0) {
+    } else if (codeStr.compare("CV_BGR5552RGBA") == 0) {
         code = CV_BGR5552RGBA;
-    } else if (codeStr.compare("CV_GRAY2BGR555")==0) {
+    } else if (codeStr.compare("CV_GRAY2BGR555") == 0) {
         code = CV_GRAY2BGR555;
-    } else if (codeStr.compare("CV_BGR5552GRAY")==0) {
+    } else if (codeStr.compare("CV_BGR5552GRAY") == 0) {
         code = CV_BGR5552GRAY;
-    } else if (codeStr.compare("CV_BGR2XYZ")==0) {
+    } else if (codeStr.compare("CV_BGR2XYZ") == 0) {
         code = CV_BGR2XYZ;
-    } else if (codeStr.compare("CV_RGB2XYZ")==0) {
+    } else if (codeStr.compare("CV_RGB2XYZ") == 0) {
         code = CV_RGB2XYZ;
-    } else if (codeStr.compare("CV_XYZ2BGR")==0) {
+    } else if (codeStr.compare("CV_XYZ2BGR") == 0) {
         code = CV_XYZ2BGR;
-    } else if (codeStr.compare("CV_XYZ2RGB")==0) {
+    } else if (codeStr.compare("CV_XYZ2RGB") == 0) {
         code = CV_XYZ2RGB;
-    } else if (codeStr.compare("CV_BGR2YCrCb")==0) {
+    } else if (codeStr.compare("CV_BGR2YCrCb") == 0) {
         code = CV_BGR2YCrCb;
-    } else if (codeStr.compare("CV_RGB2YCrCb")==0) {
+    } else if (codeStr.compare("CV_RGB2YCrCb") == 0) {
         code = CV_RGB2YCrCb;
-    } else if (codeStr.compare("CV_YCrCb2BGR")==0) {
+    } else if (codeStr.compare("CV_YCrCb2BGR") == 0) {
         code = CV_YCrCb2BGR;
-    } else if (codeStr.compare("CV_YCrCb2RGB")==0) {
+    } else if (codeStr.compare("CV_YCrCb2RGB") == 0) {
         code = CV_YCrCb2RGB;
-    } else if (codeStr.compare("CV_BGR2HSV")==0) {
+    } else if (codeStr.compare("CV_BGR2HSV") == 0) {
         code = CV_BGR2HSV;
-    } else if (codeStr.compare("CV_RGB2HSV")==0) {
+    } else if (codeStr.compare("CV_RGB2HSV") == 0) {
         code = CV_RGB2HSV;
-    } else if (codeStr.compare("CV_BGR2Lab")==0) {
+    } else if (codeStr.compare("CV_BGR2Lab") == 0) {
         code = CV_BGR2Lab;
-    } else if (codeStr.compare("CV_RGB2Lab")==0) {
+    } else if (codeStr.compare("CV_RGB2Lab") == 0) {
         code = CV_RGB2Lab;
-    } else if (codeStr.compare("CV_BayerBG2BGR")==0) {
+    } else if (codeStr.compare("CV_BayerBG2BGR") == 0) {
         code = CV_BayerBG2BGR;
-    } else if (codeStr.compare("CV_BayerGB2BGR")==0) {
+    } else if (codeStr.compare("CV_BayerGB2BGR") == 0) {
         code = CV_BayerGB2BGR;
-    } else if (codeStr.compare("CV_BayerRG2BGR")==0) {
+    } else if (codeStr.compare("CV_BayerRG2BGR") == 0) {
         code = CV_BayerRG2BGR;
-    } else if (codeStr.compare("CV_BayerGR2BGR")==0) {
+    } else if (codeStr.compare("CV_BayerGR2BGR") == 0) {
         code = CV_BayerGR2BGR;
-    } else if (codeStr.compare("CV_BayerBG2RGB")==0) {
+    } else if (codeStr.compare("CV_BayerBG2RGB") == 0) {
         code = CV_BayerBG2RGB;
-    } else if (codeStr.compare("CV_BayerGB2RGB")==0) {
+    } else if (codeStr.compare("CV_BayerGB2RGB") == 0) {
         code = CV_BayerGB2RGB;
-    } else if (codeStr.compare("CV_BayerRG2RGB")==0) {
+    } else if (codeStr.compare("CV_BayerRG2RGB") == 0) {
         code = CV_BayerRG2RGB;
-    } else if (codeStr.compare("CV_BayerGR2RGB")==0) {
+    } else if (codeStr.compare("CV_BayerGR2RGB") == 0) {
         code = CV_BayerGR2RGB;
-    } else if (codeStr.compare("CV_BGR2Luv")==0) {
+    } else if (codeStr.compare("CV_BGR2Luv") == 0) {
         code = CV_BGR2Luv;
-    } else if (codeStr.compare("CV_RGB2Luv")==0) {
+    } else if (codeStr.compare("CV_RGB2Luv") == 0) {
         code = CV_RGB2Luv;
-    } else if (codeStr.compare("CV_BGR2HLS")==0) {
+    } else if (codeStr.compare("CV_BGR2HLS") == 0) {
         code = CV_BGR2HLS;
-    } else if (codeStr.compare("CV_RGB2HLS")==0) {
+    } else if (codeStr.compare("CV_RGB2HLS") == 0) {
         code = CV_RGB2HLS;
-    } else if (codeStr.compare("CV_HSV2BGR")==0) {
+    } else if (codeStr.compare("CV_HSV2BGR") == 0) {
         code = CV_HSV2BGR;
-    } else if (codeStr.compare("CV_HSV2RGB")==0) {
+    } else if (codeStr.compare("CV_HSV2RGB") == 0) {
         code = CV_HSV2RGB;
-    } else if (codeStr.compare("CV_Lab2BGR")==0) {
+    } else if (codeStr.compare("CV_Lab2BGR") == 0) {
         code = CV_Lab2BGR;
-    } else if (codeStr.compare("CV_Lab2RGB")==0) {
+    } else if (codeStr.compare("CV_Lab2RGB") == 0) {
         code = CV_Lab2RGB;
-    } else if (codeStr.compare("CV_Luv2BGR")==0) {
+    } else if (codeStr.compare("CV_Luv2BGR") == 0) {
         code = CV_Luv2BGR;
-    } else if (codeStr.compare("CV_Luv2RGB")==0) {
+    } else if (codeStr.compare("CV_Luv2RGB") == 0) {
         code = CV_Luv2RGB;
-    } else if (codeStr.compare("CV_HLS2BGR")==0) {
+    } else if (codeStr.compare("CV_HLS2BGR") == 0) {
         code = CV_HLS2BGR;
-    } else if (codeStr.compare("CV_HLS2RGB")==0) {
+    } else if (codeStr.compare("CV_HLS2RGB") == 0) {
         code = CV_HLS2RGB;
-    } else if (codeStr.compare("CV_BayerBG2BGR_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerBG2BGR_VNG") == 0) {
         code = CV_BayerBG2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerGB2BGR_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerGB2BGR_VNG") == 0) {
         code = CV_BayerGB2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerRG2BGR_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerRG2BGR_VNG") == 0) {
         code = CV_BayerRG2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerGR2BGR_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerGR2BGR_VNG") == 0) {
         code = CV_BayerGR2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerBG2RGB_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerBG2RGB_VNG") == 0) {
         code = CV_BayerBG2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerGB2RGB_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerGB2RGB_VNG") == 0) {
         code = CV_BayerGB2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerRG2RGB_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerRG2RGB_VNG") == 0) {
         code = CV_BayerRG2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerGR2RGB_VNG")==0) {
+    } else if (codeStr.compare("CV_BayerGR2RGB_VNG") == 0) {
         code = CV_BayerGR2RGB_VNG;
-    } else if (codeStr.compare("CV_BGR2HSV_FULL")==0) {
+    } else if (codeStr.compare("CV_BGR2HSV_FULL") == 0) {
         code = CV_BGR2HSV_FULL;
-    } else if (codeStr.compare("CV_RGB2HSV_FULL")==0) {
+    } else if (codeStr.compare("CV_RGB2HSV_FULL") == 0) {
         code = CV_RGB2HSV_FULL;
-    } else if (codeStr.compare("CV_BGR2HLS_FULL")==0) {
+    } else if (codeStr.compare("CV_BGR2HLS_FULL") == 0) {
         code = CV_BGR2HLS_FULL;
-    } else if (codeStr.compare("CV_RGB2HLS_FULL")==0) {
+    } else if (codeStr.compare("CV_RGB2HLS_FULL") == 0) {
         code = CV_RGB2HLS_FULL;
-    } else if (codeStr.compare("CV_HSV2BGR_FULL")==0) {
+    } else if (codeStr.compare("CV_HSV2BGR_FULL") == 0) {
         code = CV_HSV2BGR_FULL;
-    } else if (codeStr.compare("CV_HSV2RGB_FULL")==0) {
+    } else if (codeStr.compare("CV_HSV2RGB_FULL") == 0) {
         code = CV_HSV2RGB_FULL;
-    } else if (codeStr.compare("CV_HLS2BGR_FULL")==0) {
+    } else if (codeStr.compare("CV_HLS2BGR_FULL") == 0) {
         code = CV_HLS2BGR_FULL;
-    } else if (codeStr.compare("CV_HLS2RGB_FULL")==0) {
+    } else if (codeStr.compare("CV_HLS2RGB_FULL") == 0) {
         code = CV_HLS2RGB_FULL;
-    } else if (codeStr.compare("CV_LBGR2Lab")==0) {
+    } else if (codeStr.compare("CV_LBGR2Lab") == 0) {
         code = CV_LBGR2Lab;
-    } else if (codeStr.compare("CV_LRGB2Lab")==0) {
+    } else if (codeStr.compare("CV_LRGB2Lab") == 0) {
         code = CV_LRGB2Lab;
-    } else if (codeStr.compare("CV_LBGR2Luv")==0) {
+    } else if (codeStr.compare("CV_LBGR2Luv") == 0) {
         code = CV_LBGR2Luv;
-    } else if (codeStr.compare("CV_LRGB2Luv")==0) {
+    } else if (codeStr.compare("CV_LRGB2Luv") == 0) {
         code = CV_LRGB2Luv;
-    } else if (codeStr.compare("CV_Lab2LBGR")==0) {
+    } else if (codeStr.compare("CV_Lab2LBGR") == 0) {
         code = CV_Lab2LBGR;
-    } else if (codeStr.compare("CV_Lab2LRGB")==0) {
+    } else if (codeStr.compare("CV_Lab2LRGB") == 0) {
         code = CV_Lab2LRGB;
-    } else if (codeStr.compare("CV_Luv2LBGR")==0) {
+    } else if (codeStr.compare("CV_Luv2LBGR") == 0) {
         code = CV_Luv2LBGR;
-    } else if (codeStr.compare("CV_Luv2LRGB")==0) {
+    } else if (codeStr.compare("CV_Luv2LRGB") == 0) {
         code = CV_Luv2LRGB;
-    } else if (codeStr.compare("CV_BGR2YUV")==0) {
+    } else if (codeStr.compare("CV_BGR2YUV") == 0) {
         code = CV_BGR2YUV;
-    } else if (codeStr.compare("CV_RGB2YUV")==0) {
+    } else if (codeStr.compare("CV_RGB2YUV") == 0) {
         code = CV_RGB2YUV;
-    } else if (codeStr.compare("CV_YUV2BGR")==0) {
+    } else if (codeStr.compare("CV_YUV2BGR") == 0) {
         code = CV_YUV2BGR;
-    } else if (codeStr.compare("CV_YUV2RGB")==0) {
+    } else if (codeStr.compare("CV_YUV2RGB") == 0) {
         code = CV_YUV2RGB;
-    } else if (codeStr.compare("CV_BayerBG2GRAY")==0) {
+    } else if (codeStr.compare("CV_BayerBG2GRAY") == 0) {
         code = CV_BayerBG2GRAY;
-    } else if (codeStr.compare("CV_BayerGB2GRAY")==0) {
+    } else if (codeStr.compare("CV_BayerGB2GRAY") == 0) {
         code = CV_BayerGB2GRAY;
-    } else if (codeStr.compare("CV_BayerRG2GRAY")==0) {
+    } else if (codeStr.compare("CV_BayerRG2GRAY") == 0) {
         code = CV_BayerRG2GRAY;
-    } else if (codeStr.compare("CV_BayerGR2GRAY")==0) {
+    } else if (codeStr.compare("CV_BayerGR2GRAY") == 0) {
         code = CV_BayerGR2GRAY;
 #ifdef CV_YUV420i2RGB
-    } else if (codeStr.compare("CV_YUV420i2RGB")==0) {
+    } else if (codeStr.compare("CV_YUV420i2RGB") == 0) {
         code = CV_YUV420i2RGB;
-    } else if (codeStr.compare("CV_YUV420i2BGR")==0) {
+    } else if (codeStr.compare("CV_YUV420i2BGR") == 0) {
         code = CV_YUV420i2BGR;
 #endif
-    } else if (codeStr.compare("CV_YUV420sp2RGB")==0) {
+    } else if (codeStr.compare("CV_YUV420sp2RGB") == 0) {
         code = CV_YUV420sp2RGB;
-    } else if (codeStr.compare("CV_YUV420sp2BGR")==0) {
+    } else if (codeStr.compare("CV_YUV420sp2BGR") == 0) {
         code = CV_YUV420sp2BGR;
     } else {
         errMsg = "Unknown cvtColor conversion code";
@@ -640,7 +640,7 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     // input parameters
     double thr1 = jo_double(pStage, "threshold1", 1.2, model.argMap);
     double thr2 = jo_double(pStage, "threshold2", 1.2, model.argMap);
-    double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
+    double confidence = jo_double(pStage, "confidence", (1.0 - 1e-12), model.argMap);
     double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
 
     string pointsModelName = jo_string(pStage, "model", "", model.argMap);
@@ -732,7 +732,7 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 
 
     } catch (runtime_error &e) {
-        errMsg = (char *) malloc(sizeof(char) * (strlen(e.what())+1));
+        errMsg = (char *) malloc(sizeof(char) * (strlen(e.what()) + 1));
         strcpy(errMsg, e.what());
     }
 
@@ -742,7 +742,7 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
     const char *errMsg = NULL;
-    Scalar color = jo_Scalar(pStage, "color", Scalar(-1,-1,-1,255), model.argMap);
+    Scalar color = jo_Scalar(pStage, "color", Scalar(-1, -1, -1, 255), model.argMap);
     int radius = jo_int(pStage, "radius", 0, model.argMap);
     int thickness = jo_int(pStage, "thickness", 2, model.argMap);
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
@@ -799,16 +799,16 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
                     if (radius > 0) {
                         r = radius;
                     } else if (width > 0 && height > 0) {
-                        r = (int)(0.5+min(width,height)/2.0);
+                        r = (int)(0.5 + min(width, height) / 2.0);
                     } else {
                         r = 5;
                     }
-                    circle(model.image, Point(x,y), r, rectColor, thickness);
+                    circle(model.image, Point(x, y), r, rectColor, thickness);
                 } else {
-                    RotatedRect rect(Point(x,y), Size(width, height), angle);
+                    RotatedRect rect(Point(x, y), Size(width, height), angle);
                     rect.points(vertices);
                     for (int i = 0; i < 4; i++) {
-                        line(model.image, vertices[i], vertices[(i+1)%4], rectColor, thickness);
+                        line(model.image, vertices[i], vertices[(i + 1) % 4], rectColor, thickness);
                     }
                 }
             }
@@ -822,7 +822,7 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
     validateImage(model.image);
     const char *errMsg = NULL;
     Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
-    int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);
+    int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG | DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);
     string modelName = jo_string(pStage, "model", "", model.argMap);
     json_t *pKeypointStage = jo_object(model.getJson(false), modelName.c_str(), model.argMap);
 
@@ -888,7 +888,7 @@ bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
     }
 
     if (!errMsg) {
-        blur(model.image, model.image, Size(width,height));
+        blur(model.image, model.image, Size(width, height));
     }
 
     return stageOK("apply_blur(%s) %s", errMsg, pStage, pStageModel);
@@ -896,19 +896,19 @@ bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
 
 static void modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
     json_t *pKeyPoints = json_array();
-    json_object_set(pStageModel, "keypoints", pKeyPoints);
-    for (size_t i=0; i<keyPoints.size(); i++) {
+    json_object_set_new(pStageModel, "keypoints", pKeyPoints);
+    for (size_t i = 0; i < keyPoints.size(); i++) {
         json_t *pKeyPoint = json_object();
-        json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
-        json_object_set(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
-        json_object_set(pKeyPoint, "size", json_real(keyPoints[i].size));
+        json_object_set_new(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
+        json_object_set_new(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
+        json_object_set_new(pKeyPoint, "size", json_real(keyPoints[i].size));
         if (keyPoints[i].angle != -1) {
-            json_object_set(pKeyPoint, "angle", json_real(keyPoints[i].angle));
+            json_object_set_new(pKeyPoint, "angle", json_real(keyPoints[i].angle));
         }
         if (keyPoints[i].response != 0) {
-            json_object_set(pKeyPoint, "response", json_real(keyPoints[i].response));
+            json_object_set_new(pKeyPoint, "response", json_real(keyPoints[i].response));
         }
-        json_array_append(pKeyPoints, pKeyPoint);
+        json_array_append_new(pKeyPoints, pKeyPoint);
     }
 }
 
@@ -951,7 +951,7 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
 
 bool Pipeline::apply_circle(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
-    Point center = jo_Point(pStage, "center", Point(0,0), model.argMap);
+    Point center = jo_Point(pStage, "center", Point(0, 0), model.argMap);
     int radius = jo_int(pStage, "radius", 0, model.argMap);
     Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
     int thickness = jo_int(pStage, "thickness", 1, model.argMap);
@@ -970,10 +970,10 @@ bool Pipeline::apply_circle(json_t *pStage, json_t *pStageModel, Model &model) {
 
         }
         if (thickness >= 0) {
-            int outThickness = thickness/2;
+            int outThickness = thickness / 2;
             int inThickness = (int)(thickness - outThickness);
             if (fill[0] >= 0) {
-                circle(model.image, center, radius-inThickness, fill, -1, lineType, shift);
+                circle(model.image, center, radius - inThickness, fill, -1, lineType, shift);
             }
         }
     }
@@ -984,7 +984,7 @@ bool Pipeline::apply_circle(json_t *pStage, json_t *pStageModel, Model &model) {
 bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model) {
     const char *errMsg = NULL;
     string methodStr = jo_string(pStage, "method", "GRAS", model.argMap);
-    
+
     /* Apply selected method */
     double sharpness = 0;
     if (strcmp("GRAS", methodStr.c_str()) == 0) {
@@ -993,7 +993,7 @@ bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model
         sharpness = Sharpness::LAPE(model.image);
     }
 
-    json_object_set(pStageModel, "sharpness", json_real(sharpness));
+    json_object_set_new(pStageModel, "sharpness", json_real(sharpness));
 
     return stageOK("apply_sharpness(%s) %s", errMsg, pStage, pStageModel);
 
@@ -1015,10 +1015,10 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model
     const char *errMsg = NULL;
 
     if ( x == -1 ) {
-        x = (model.image.cols-width)/2;
+        x = (model.image.cols - width) / 2;
     }
     if ( y == -1 ) {
-        y = (model.image.rows-height)/2;
+        y = (model.image.rows - height) / 2;
     }
     if ( x < 0 || y < 0) {
         errMsg = "Expected 0<=x and 0<=y";
@@ -1028,26 +1028,26 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model
 
     if (!errMsg) {
         if (model.image.cols == 0 || model.image.rows == 0) {
-            model.image = Mat(height, width, CV_8UC3, Scalar(0,0,0));
+            model.image = Mat(height, width, CV_8UC3, Scalar(0, 0, 0));
         }
         if (thickness) {
-            rectangle(model.image, Rect(x,y,width,height), color, thickness, lineType, shift);
+            rectangle(model.image, Rect(x, y, width, height), color, thickness, lineType, shift);
         }
         if (thickness >= 0) {
-            int outThickness = thickness/2;
+            int outThickness = thickness / 2;
             int inThickness = (int)(thickness - outThickness);
             if (fill[0] >= 0) {
-                rectangle(model.image, Rect(x+inThickness,y+inThickness,width-inThickness*2,height-inThickness*2), fill, -1, lineType, shift);
+                rectangle(model.image, Rect(x + inThickness, y + inThickness, width - inThickness * 2, height - inThickness * 2), fill, -1, lineType, shift);
             }
             if (flood[0] >= 0) {
                 int left = x - outThickness;
                 int top = y - outThickness;
-                int right = x+width+outThickness;
-                int bot = y+height+outThickness;
-                rectangle(model.image, Rect(0,0,model.image.cols,top), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(0,bot,model.image.cols,model.image.rows-bot), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(0,top,left,height+outThickness*2), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(right,top,model.image.cols-right,height+outThickness*2), flood, -1, lineType, shift);
+                int right = x + width + outThickness;
+                int bot = y + height + outThickness;
+                rectangle(model.image, Rect(0, 0, model.image.cols, top), flood, -1, lineType, shift);
+                rectangle(model.image, Rect(0, bot, model.image.cols, model.image.rows - bot), flood, -1, lineType, shift);
+                rectangle(model.image, Rect(0, top, left, height + outThickness * 2), flood, -1, lineType, shift);
+                rectangle(model.image, Rect(right, top, model.image.cols - right, height + outThickness * 2), flood, -1, lineType, shift);
             }
         }
     }
@@ -1091,7 +1091,7 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
 
     if (width <= 0 || height <= 0) {
         errMsg = "Expected 0<width and 0<height";
-    } else if (color[0] <0 || color[1]<0 || color[2]<0) {
+    } else if (color[0] < 0 || color[1] < 0 || color[2] < 0) {
         errMsg = "Expected color JSON array with non-negative values";
     }
 
@@ -1125,7 +1125,7 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
                 errMsg = "Too many channels";
                 break;
             }
-            nFromTo = index+1;
+            nFromTo = index + 1;
             fromTo[index] = (int)json_integer_value(pInt);
         }
     }
@@ -1136,7 +1136,7 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
         Mat outImage( model.image.rows, model.image.cols, CV_MAKETYPE(depth, channels) );
         LOGTRACE1("Creating output model.image %s", matInfo(outImage).c_str());
         Mat out[] = { outImage };
-        mixChannels( &model.image, 1, out, 1, fromTo, nFromTo/2 );
+        mixChannels( &model.image, 1, out, 1, fromTo, nFromTo / 2 );
         model.image = outImage;
     }
 
@@ -1181,7 +1181,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
     string comment = jo_string(pStage, "comment", "", model.argMap);
     const char *errMsg = NULL;
 
-    if (row<0 || col<0 || rows<=0 || cols<=0) {
+    if (row < 0 || col < 0 || rows <= 0 || cols <= 0) {
         errMsg = "Expected 0<=row and 0<=col and 0<cols and 0<rows";
     }
     if (rows > model.image.rows) {
@@ -1194,37 +1194,37 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
     if (!errMsg) {
         int depth = model.image.depth();
         cout << matInfo(model.image);
-        cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
+        cout << " show:[" << row << "-" << row + rows - 1 << "," << col << "-" << col + cols - 1 << "]";
         if (comment.size()) {
             cout << " " << comment;
         }
         cout << endl;
-        for (int r = row; r < row+rows; r++) {
-            for (int c = col; c < col+cols; c++) {
+        for (int r = row; r < row + rows; r++) {
+            for (int c = col; c < col + cols; c++) {
                 cout.precision(precision);
                 cout.width(width);
                 if (model.image.channels() == 1) {
                     switch (depth) {
                     case CV_8S:
                     case CV_8U:
-                        cout << (short) model.image.at<unsigned char>(r,c,channel) << " ";
+                        cout << (short) model.image.at<unsigned char>(r, c, channel) << " ";
                         break;
                     case CV_16U:
-                        cout << model.image.at<unsigned short>(r,c) << " ";
+                        cout << model.image.at<unsigned short>(r, c) << " ";
                         break;
                     case CV_16S:
-                        cout << model.image.at<short>(r,c) << " ";
+                        cout << model.image.at<short>(r, c) << " ";
                         break;
                     case CV_32S:
-                        cout << model.image.at<int>(r,c) << " ";
+                        cout << model.image.at<int>(r, c) << " ";
                         break;
                     case CV_32F:
                         cout << std::fixed;
-                        cout << model.image.at<float>(r,c) << " ";
+                        cout << model.image.at<float>(r, c) << " ";
                         break;
                     case CV_64F:
                         cout << std::fixed;
-                        cout << model.image.at<double>(r,c) << " ";
+                        cout << model.image.at<double>(r, c) << " ";
                         break;
                     default:
                         cout << "UNSUPPORTED-CONVERSION" << " ";
@@ -1234,24 +1234,24 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
                     switch (depth) {
                     case CV_8S:
                     case CV_8U:
-                        cout << (short) model.image.at<Vec2b>(r,c)[channel] << " ";
+                        cout << (short) model.image.at<Vec2b>(r, c)[channel] << " ";
                         break;
                     case CV_16U:
-                        cout << model.image.at<Vec2w>(r,c)[channel] << " ";
+                        cout << model.image.at<Vec2w>(r, c)[channel] << " ";
                         break;
                     case CV_16S:
-                        cout << model.image.at<Vec2s>(r,c)[channel] << " ";
+                        cout << model.image.at<Vec2s>(r, c)[channel] << " ";
                         break;
                     case CV_32S:
-                        cout << model.image.at<Vec2i>(r,c)[channel] << " ";
+                        cout << model.image.at<Vec2i>(r, c)[channel] << " ";
                         break;
                     case CV_32F:
                         cout << std::fixed;
-                        cout << model.image.at<Vec2f>(r,c)[channel] << " ";
+                        cout << model.image.at<Vec2f>(r, c)[channel] << " ";
                         break;
                     case CV_64F:
                         cout << std::fixed;
-                        cout << model.image.at<Vec2d>(r,c)[channel] << " ";
+                        cout << model.image.at<Vec2d>(r, c)[channel] << " ";
                         break;
                     default:
                         cout << "UNSUPPORTED-CONVERSION" << " ";
@@ -1297,24 +1297,24 @@ bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
         double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
 
 #define SSE_THRESHOLD 1e-10
-        if( sse > 1e-10) {
-            double  mse =sse /(double)(model.image.channels() * model.image.total());
-            double psnr = 10.0*log10((255*255)/mse);
-            json_object_set(pStageModel, "PSNR", json_real(psnr));
+        if ( sse > 1e-10) {
+            double  mse = sse / (double)(model.image.channels() * model.image.total());
+            double psnr = 10.0 * log10((255 * 255) / mse);
+            json_object_set_new(pStageModel, "PSNR", json_real(psnr));
             if (threshold >= 0) {
                 if (psnr >= threshold) {
                     LOGTRACE2("apply_PSNR() threshold passed: %f >= %f", psnr, threshold);
-                    json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
+                    json_object_set_new(pStageModel, "PSNR", json_string(psnrSame.c_str()));
                 } else {
                     LOGTRACE2("apply_PSNR() threshold failed: %f < %f", psnr, threshold);
                 }
             }
         } else if (sse == 0) {
             LOGTRACE("apply_PSNR() identical images: SSE == 0");
-            json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
+            json_object_set_new(pStageModel, "PSNR", json_string(psnrSame.c_str()));
         } else {
             LOGTRACE2("apply_PSNR() threshold passed: SSE %f < %f", sse, SSE_THRESHOLD);
-            json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
+            json_object_set_new(pStageModel, "PSNR", json_string(psnrSame.c_str()));
         }
     }
 
@@ -1433,8 +1433,8 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
 
     int roiRowStart = max(0, roi.y);
     int roiColStart = max(0, roi.x);
-    int roiRowEnd = min(model.image.rows, roi.y+roi.height);
-    int roiColEnd = min(model.image.cols, roi.x+roi.width);
+    int roiRowEnd = min(model.image.rows, roi.y + roi.height);
+    int roiColEnd = min(model.image.cols, roi.x + roi.width);
 
     if (roiRowEnd <= 0 || model.image.rows <= roiRowStart ||
             roiColEnd <= 0 || model.image.cols <= roiColStart) {
@@ -1451,18 +1451,18 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
         int bgBlue = isBgColor ? bgcolor[0] : 255;
         int bgGreen = isBgColor ? bgcolor[1] : 255;
         int bgRed = isBgColor ? bgcolor[2] : 255;
-        for (int r=roiRowStart; r < roiRowEnd; r++) {
-            for (int c=roiColStart; c < roiColEnd; c++) {
+        for (int r = roiRowStart; r < roiRowEnd; r++) {
+            for (int c = roiColStart; c < roiColEnd; c++) {
                 if (isBgColor) {
-                    if ( bgBlue == imageAlpha.at<Vec4b>(r,c)[0] &&
-                            bgGreen == imageAlpha.at<Vec4b>(r,c)[1] &&
-                            bgRed == imageAlpha.at<Vec4b>(r,c)[2]) {
-                        imageAlpha.at<Vec4b>(r,c)[3] = bgIntensity;
+                    if ( bgBlue == imageAlpha.at<Vec4b>(r, c)[0] &&
+                            bgGreen == imageAlpha.at<Vec4b>(r, c)[1] &&
+                            bgRed == imageAlpha.at<Vec4b>(r, c)[2]) {
+                        imageAlpha.at<Vec4b>(r, c)[3] = bgIntensity;
                     } else {
-                        imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+                        imageAlpha.at<Vec4b>(r, c)[3] = fgIntensity;
                     }
                 } else {
-                    imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+                    imageAlpha.at<Vec4b>(r, c)[3] = fgIntensity;
                 }
             }
         }
@@ -1494,9 +1494,9 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &
         recognizer.showMatches(showMatches);
         recognizer.scan(model.image, matches);
         json_t *holes = json_array();
-        json_object_set(pStageModel, "holes", holes);
+        json_object_set_new(pStageModel, "holes", holes);
         for (size_t i = 0; i < matches.size(); i++) {
-            json_array_append(holes, matches[i].as_json_t());
+            json_array_append_new(holes, matches[i].as_json_t());
         }
     }
 
@@ -1536,9 +1536,9 @@ bool Pipeline::apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &mo
         hough_c.setHoughParams(hc_dp, hc_minDist, hc_param1, hc_param2);
         hough_c.scan(model.image, circles);
         json_t *circles_json = json_array();
-        json_object_set(pStageModel, "circles", circles_json);
+        json_object_set_new(pStageModel, "circles", circles_json);
         for (size_t i = 0; i < circles.size(); i++) {
-            json_array_append(circles_json, circles[i].as_json_t());
+            json_array_append_new(circles_json, circles[i].as_json_t());
         }
     }
 
@@ -1601,21 +1601,24 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 
 void Pipeline::validateImage(Mat &image) {
     if (image.cols == 0 || image.rows == 0) {
-        image = Mat(100,100, CV_8UC3);
-        putText(image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-        putText(image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-        putText(image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+        image = Mat(100, 100, CV_8UC3);
+        putText(image, "FireSight:", Point(10, 20), FONT_HERSHEY_PLAIN, 1, Scalar(128, 255, 255));
+        putText(image, "No input", Point(10, 40), FONT_HERSHEY_PLAIN, 1, Scalar(128, 255, 255));
+        putText(image, "image?", Point(10, 60), FONT_HERSHEY_PLAIN, 1, Scalar(128, 255, 255));
     }
 }
 
 json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap) {
     Model model(argMap);
-	json_t *pModelJson = model.getJson(true);
+    json_t *pModelJson = model.getJson(true);
 
     model.image = workingImage;
     model.imageMap["input"] = model.image.clone();
     bool ok = processModel(model);
-	workingImage = model.image;
+    workingImage = model.image;
+
+    // need to empty model
+
 
     return pModelJson;
 }
@@ -1638,7 +1641,7 @@ bool Pipeline::processModel(Model &model) {
         bool isSaveImage = true;
         if (pName.empty()) {
             char defaultName[100];
-            snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
+            snprintf(defaultName, sizeof(defaultName), "s%d", (int)index + 1);
             pName = defaultName;
             isSaveImage = false;
         }
@@ -1648,12 +1651,12 @@ bool Pipeline::processModel(Model &model) {
         json_object_set_new(jmodel, pName.c_str(), pStageModel);
         if (logLevel >= FIRELOG_DEBUG) {
             string stageDump = jo_object_dump(pStage, model.argMap);
-            snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
+            snprintf(debugBuf, sizeof(debugBuf), "process() %s %s",
                      matInfo(model.image).c_str(), stageDump.c_str());
         }
-        if (strncmp(pOp.c_str(), "nop", 3)==0) {
+        if (strncmp(pOp.c_str(), "nop", 3) == 0) {
             LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
-        } else if (pName.compare("input")==0) {
+        } else if (pName.compare("input") == 0) {
             ok = logErrorMessage("\"input\" is the reserved stage name for the input image",
                                  pName.c_str(), pStage, pStageModel);
         } else {
@@ -1675,15 +1678,14 @@ bool Pipeline::processModel(Model &model) {
             ok = false;
             break;
         }
-        if (model.image.cols <=0 || model.image.rows<=0) {
+        if (model.image.cols <= 0 || model.image.rows <= 0) {
             LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
             ok = false;
             break;
         }
-		//json_decref(pStageModel);
     } // json_array_foreach
 
-    float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
+    float msElapsed = (cvGetTickCount() - tickStart) / cvGetTickFrequency() / 1000;
     LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",
               (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
 
@@ -1695,108 +1697,108 @@ const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pSta
     bool ok = true;
     const char *errMsg = NULL;
 
-    if (strcmp(pOp, "absdiff")==0) {
+    if (strcmp(pOp, "absdiff") == 0) {
         ok = apply_absdiff(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "backgroundSubtractor")==0) {
+    } else if (strcmp(pOp, "backgroundSubtractor") == 0) {
         ok = apply_backgroundSubtractor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "bgsub")==0) {
+    } else if (strcmp(pOp, "bgsub") == 0) {
         ok = apply_backgroundSubtractor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "blur")==0) {
+    } else if (strcmp(pOp, "blur") == 0) {
         ok = apply_blur(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "calcHist")==0) {
+    } else if (strcmp(pOp, "calcHist") == 0) {
         ok = apply_calcHist(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "calcOffset")==0) {
+    } else if (strcmp(pOp, "calcOffset") == 0) {
         ok = apply_calcOffset(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "circle")==0) {
+    } else if (strcmp(pOp, "circle") == 0) {
         ok = apply_circle(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "convertTo")==0) {
+    } else if (strcmp(pOp, "convertTo") == 0) {
         ok = apply_convertTo(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "cout")==0) {
+    } else if (strcmp(pOp, "cout") == 0) {
         ok = apply_cout(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "Canny")==0) {
+    } else if (strcmp(pOp, "Canny") == 0) {
         ok = apply_Canny(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "cvtColor")==0) {
+    } else if (strcmp(pOp, "cvtColor") == 0) {
         ok = apply_cvtColor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dft")==0) {
+    } else if (strcmp(pOp, "dft") == 0) {
         ok = apply_dft(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dftSpectrum")==0) {
+    } else if (strcmp(pOp, "dftSpectrum") == 0) {
         ok = apply_dftSpectrum(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dilate")==0) {
+    } else if (strcmp(pOp, "dilate") == 0) {
         ok = apply_dilate(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "drawKeypoints")==0) {
+    } else if (strcmp(pOp, "drawKeypoints") == 0) {
         ok = apply_drawKeypoints(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "drawRects")==0) {
+    } else if (strcmp(pOp, "drawRects") == 0) {
         ok = apply_drawRects(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "equalizeHist")==0) {
+    } else if (strcmp(pOp, "equalizeHist") == 0) {
         ok = apply_equalizeHist(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "erode")==0) {
+    } else if (strcmp(pOp, "erode") == 0) {
         ok = apply_erode(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "FireSight")==0) {
+    } else if (strcmp(pOp, "FireSight") == 0) {
         ok = apply_FireSight(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "HoleRecognizer")==0) {
+    } else if (strcmp(pOp, "HoleRecognizer") == 0) {
         ok = apply_HoleRecognizer(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "HoughCircles")==0) {
+    } else if (strcmp(pOp, "HoughCircles") == 0) {
         ok = apply_HoughCircles(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "points2resolution_RANSAC")==0) {
+    } else if (strcmp(pOp, "points2resolution_RANSAC") == 0) {
         ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "imread")==0) {
+    } else if (strcmp(pOp, "imread") == 0) {
         ok = apply_imread(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "imwrite")==0) {
+    } else if (strcmp(pOp, "imwrite") == 0) {
         ok = apply_imwrite(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "Mat")==0) {
+    } else if (strcmp(pOp, "Mat") == 0) {
         ok = apply_Mat(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "matchGrid")==0) {
+    } else if (strcmp(pOp, "matchGrid") == 0) {
         ok = apply_matchGrid(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "matchTemplate")==0) {
+    } else if (strcmp(pOp, "matchTemplate") == 0) {
         ok = apply_matchTemplate(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "meanStdDev")==0) {
+    } else if (strcmp(pOp, "meanStdDev") == 0) {
         ok = apply_meanStdDev(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "minAreaRect")==0) {
+    } else if (strcmp(pOp, "minAreaRect") == 0) {
         ok = apply_minAreaRect(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "model")==0) {
+    } else if (strcmp(pOp, "model") == 0) {
         ok = apply_model(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "morph")==0) {
+    } else if (strcmp(pOp, "morph") == 0) {
         ok = apply_morph(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "MSER")==0) {
+    } else if (strcmp(pOp, "MSER") == 0) {
         ok = apply_MSER(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "normalize")==0) {
+    } else if (strcmp(pOp, "normalize") == 0) {
         ok = apply_normalize(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "PSNR")==0) {
+    } else if (strcmp(pOp, "PSNR") == 0) {
         ok = apply_PSNR(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "proto")==0) {
+    } else if (strcmp(pOp, "proto") == 0) {
         ok = apply_proto(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "putText")==0) {
+    } else if (strcmp(pOp, "putText") == 0) {
         ok = apply_putText(pStage, pStageModel, model);
 #ifdef LGPL2_1
-    } else if (strcmp(pOp, "qrDecode")==0) {
+    } else if (strcmp(pOp, "qrDecode") == 0) {
         ok = apply_qrdecode(pStage, pStageModel, model);
 #endif // LGPL2_1
-    } else if (strcmp(pOp, "rectangle")==0) {
+    } else if (strcmp(pOp, "rectangle") == 0) {
         ok = apply_rectangle(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "resize")==0) {
+    } else if (strcmp(pOp, "resize") == 0) {
         ok = apply_resize(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "sharpness")==0) {
+    } else if (strcmp(pOp, "sharpness") == 0) {
         ok = apply_sharpness(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "SimpleBlobDetector")==0) {
+    } else if (strcmp(pOp, "SimpleBlobDetector") == 0) {
         ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "split")==0) {
+    } else if (strcmp(pOp, "split") == 0) {
         ok = apply_split(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "stageImage")==0) {
+    } else if (strcmp(pOp, "stageImage") == 0) {
         ok = apply_stageImage(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "transparent")==0) {
+    } else if (strcmp(pOp, "transparent") == 0) {
         ok = apply_transparent(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "threshold")==0) {
+    } else if (strcmp(pOp, "threshold") == 0) {
         ok = apply_threshold(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "undistort")==0) {
+    } else if (strcmp(pOp, "undistort") == 0) {
         ok = apply_undistort(pName, pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpAffine")==0) {
+    } else if (strcmp(pOp, "warpAffine") == 0) {
         ok = apply_warpAffine(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpRing")==0) {
+    } else if (strcmp(pOp, "warpRing") == 0) {
         ok = apply_warpRing(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpPerspective")==0) {
+    } else if (strcmp(pOp, "warpPerspective") == 0) {
         ok = apply_warpPerspective(pName, pStage, pStageModel, model);
 
-    } else if (strncmp(pOp, "nop", 3)==0) {
+    } else if (strncmp(pOp, "nop", 3) == 0) {
         LOGDEBUG("Skipping nop...");
     } else {
         errMsg = "unknown op";
